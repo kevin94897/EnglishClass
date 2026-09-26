@@ -12,7 +12,6 @@ export type StudyState = {
 
 export const MASTERED_BOX = 4;
 export const REVIEW_BOX = 2;
-export const STORAGE_KEY = "chefen.beginner.v1";
 
 export const emptyState = (): StudyState => ({ progress: {}, streak: 0, lastDay: null });
 
@@ -45,10 +44,10 @@ export function refreshStreak(state: StudyState): StudyState {
   return { ...state, streak: 0 };
 }
 
-export function loadState(): StudyState {
+export function loadState(key: string): StudyState {
   if (typeof window === "undefined") return emptyState();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<StudyState>;
     return refreshStreak({ ...emptyState(), ...parsed });
@@ -57,10 +56,10 @@ export function loadState(): StudyState {
   }
 }
 
-export function saveState(state: StudyState): void {
+export function saveState(key: string, state: StudyState): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(key, JSON.stringify(state));
   } catch {
     /* modo privado o almacenamiento lleno: la sesión sigue funcionando */
   }

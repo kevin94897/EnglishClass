@@ -4,10 +4,13 @@ export type Term = {
   id: string;
   en: string;
   es: string;
-  cat: Category;
+  /** Id de categoría dentro de su temario (ver data/topics.ts). */
+  cat: string;
   emoji: string;
   exEn: string;
   exEs: string;
+  /** Palabra que se oculta en el modo Completar; por defecto, `en`. */
+  blank?: string;
 };
 
 /**
@@ -101,22 +104,15 @@ export const VOCAB: Term[] = [
   { id: "onemore", en: "One more, please.", es: "Uno más, por favor.", cat: "phrases", emoji: "☝️", exEn: "One more plate, please.", exEs: "Un plato más, por favor." },
 ];
 
-export type DeckId = Category | "all" | "review";
+/** "all", "review" o el id de una categoría del temario activo. */
+export type DeckId = string;
 
-export const DECKS: { id: DeckId; label: string }[] = [
-  { id: "all", label: "Todo" },
-  { id: "verbs", label: "Verbos" },
-  { id: "tools", label: "Utensilios" },
-  { id: "food", label: "Ingredientes" },
-  { id: "phrases", label: "Frases" },
-  { id: "review", label: "Por repasar" },
-];
-
-export type ViewId = "cards" | "quiz" | "match" | "write" | "listen" | "glossary";
+export type ViewId = "cards" | "quiz" | "cloze" | "match" | "write" | "listen" | "glossary";
 
 export const VIEWS: { id: ViewId; label: string }[] = [
   { id: "cards", label: "Tarjetas" },
   { id: "quiz", label: "Quiz" },
+  { id: "cloze", label: "Completar" },
   { id: "match", label: "Parejas" },
   { id: "write", label: "Escribir" },
   { id: "listen", label: "Escuchar" },

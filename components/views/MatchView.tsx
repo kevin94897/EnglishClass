@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
 import { shuffle } from "@/lib/utils";
+import { RotateCcw } from "lucide-react";
 import { Empty } from "../Feedback";
 
 const PAIRS = 6;
@@ -102,7 +103,7 @@ export default function MatchView() {
       {done && (
         <div className="row mt">
           <button className="btn yes" onClick={start}>
-            Otra ronda
+            <RotateCcw size={18} aria-hidden="true" /> Otra ronda
           </button>
         </div>
       )}

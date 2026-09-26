@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useStudy } from "@/lib/study-context";
+import { Search, Volume2 } from "lucide-react";
 import { useSpeech } from "@/lib/speech";
 
 export default function GlossaryView() {
@@ -19,14 +20,17 @@ export default function GlossaryView() {
 
   return (
     <>
-      <input
-        className="search"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-        placeholder="Buscar en inglés o español…"
-        autoComplete="off"
-        aria-label="Buscar palabra"
-      />
+      <div className="search-wrap">
+        <Search size={18} aria-hidden="true" />
+        <input
+          className="search"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          placeholder="Buscar en inglés o español…"
+          autoComplete="off"
+          aria-label="Buscar palabra"
+        />
+      </div>
 
       <div className="panel">
         <ul className="list">
@@ -46,7 +50,7 @@ export default function GlossaryView() {
                 </span>
               </span>
               <button className="spk" onClick={() => speak(t.en)} aria-label={`Escuchar ${t.en}`}>
-                🔊
+                <Volume2 size={16} />
               </button>
             </li>
           ))}

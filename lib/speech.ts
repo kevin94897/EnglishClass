@@ -38,8 +38,8 @@ function scoreVoice(v: SpeechSynthesisVoice): number {
   if (/natural|neural/.test(name)) score += 30;
   // En Chromium/Brave (macOS) las Premium/Enhanced aparecen en la lista pero suelen sonar mudas
   if (/premium|enhanced/.test(name)) score -= 60;
-  // Las voces locales no dependen de red y fallan menos
-  if (v.localService) score += 20;
+  // Las voces locales no dependen de red: arrancan al instante y fallan menos
+  if (v.localService) score += 40;
   if (/en[-_]US/i.test(v.lang)) score += 10;
   return score;
 }
@@ -57,7 +57,9 @@ function rankVoices(
     .map((x) => x.v);
 }
 
-const BROKEN_KEY = "chef-english:broken-voices";
+const BROKEN_KEY = "chef-english:broken-voices:v2";
+// Tiempo máximo para que una voz arranque antes de probar la siguiente
+const START_TIMEOUT = 2500;
 
 function loadBroken(): Set<string> {
   try {
@@ -77,6 +79,9 @@ function saveBroken(set: Set<string>) {
 
 export function useSpeech() {
   const brokenRef = useRef<Set<string>>(loadBroken());
+  // Voces que tardaron en arrancar en esta sesión; a la segunda vez se descartan
+  const slowRef = useRef<Map<string, number>>(new Map());
+  const warmedRef = useRef(false);
   // Referencia viva: Chrome descarta utterances sin referencia y no suenan
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,11 +91,34 @@ export function useSpeech() {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     setSupported(true);
     // Carga temprana de la lista de voces (Chrome la llena de forma asíncrona)
-    const load = () => window.speechSynthesis.getVoices();
+    const synth = window.speechSynthesis;
+    const load = () => synth.getVoices();
     load();
-    window.speechSynthesis.addEventListener("voiceschanged", load);
+    synth.addEventListener("voiceschanged", load);
+
+    // El primer audio de la sesión tarda porque el navegador debe cargar la voz.
+    // Con el primer toque en la página se dispara una frase muda para precargarla.
+    const warm = () => {
+      if (warmedRef.current || synth.speaking || synth.pending) return;
+      warmedRef.current = true;
+      const [voice] = rankVoices(synth.getVoices(), brokenRef.current);
+      if (!voice) return;
+      const u = new SpeechSynthesisUtterance("a");
+      u.voice = voice;
+      u.lang = voice.lang;
+      u.volume = 0;
+      u.rate = 2;
+      try {
+        synth.speak(u);
+      } catch {
+        /* sin efecto: el primer audio real cargará la voz */
+      }
+    };
+    window.addEventListener("pointerdown", warm, { once: true, passive: true });
+
     return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", load);
+      synth.removeEventListener("voiceschanged", load);
+      window.removeEventListener("pointerdown", warm);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
@@ -123,12 +151,20 @@ export function useSpeech() {
       utter.volume = 1;
 
       let started = false;
-      const fail = () => {
+      const fail = (hardError: boolean) => {
         if (started || utterRef.current !== utter) return;
         if (timerRef.current) clearTimeout(timerRef.current);
         if (voice) {
-          brokenRef.current.add(voice.voiceURI);
-          saveBroken(brokenRef.current);
+          if (hardError) {
+            // Error del motor: la voz no sirve, se recuerda entre sesiones
+            brokenRef.current.add(voice.voiceURI);
+            saveBroken(brokenRef.current);
+          } else {
+            // Solo tardó en arrancar: se descarta recién a la segunda vez y solo en esta sesión
+            const n = (slowRef.current.get(voice.voiceURI) ?? 0) + 1;
+            slowRef.current.set(voice.voiceURI, n);
+            if (n >= 2) brokenRef.current.add(voice.voiceURI);
+          }
         }
         synth.cancel();
         // Chromium ignora un speak() inmediatamente después de cancel()
@@ -141,12 +177,12 @@ export function useSpeech() {
       utter.onerror = (e) => {
         // "interrupted"/"canceled" = el usuario pulsó otro audio, no es fallo de la voz
         if (e.error === "interrupted" || e.error === "canceled") return;
-        fail();
+        fail(true);
       };
       synth.speak(utter);
       if (synth.paused) synth.resume();
-      // Si la voz no arranca en 1.5 s (no descargada, sin red), probar la siguiente
-      timerRef.current = setTimeout(fail, 1500);
+      // Si la voz no arranca a tiempo (no descargada, sin red), probar la siguiente
+      timerRef.current = setTimeout(() => fail(false), START_TIMEOUT);
     };
 
     try {

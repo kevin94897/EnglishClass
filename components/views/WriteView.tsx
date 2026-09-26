@@ -5,6 +5,7 @@ import type { Term } from "@/data/vocabulary";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
 import { normalize } from "@/lib/utils";
+import { ArrowRight, Check, Lightbulb } from "lucide-react";
 import { Empty, RoundEnd } from "../Feedback";
 
 const ROUND = 10;
@@ -90,6 +91,8 @@ export default function WriteView() {
             placeholder="escribe aquí"
             autoComplete="off"
             autoCapitalize="off"
+            autoCorrect="off"
+            enterKeyHint={checked === null ? "done" : "next"}
             spellCheck={false}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
@@ -113,10 +116,18 @@ export default function WriteView() {
 
           <div className="row mt">
             <button className="btn ghost" onClick={() => setClue(true)} title="Pista" aria-label="Pista">
-              💡
+              <Lightbulb size={20} />
             </button>
             <button className="btn yes" onClick={checked === null ? check : next}>
-              {checked === null ? "Revisar" : "Siguiente"}
+              {checked === null ? (
+                <>
+                  <Check size={18} aria-hidden="true" /> Revisar
+                </>
+              ) : (
+                <>
+                  Siguiente <ArrowRight size={18} aria-hidden="true" />
+                </>
+              )}
             </button>
           </div>
         </div>

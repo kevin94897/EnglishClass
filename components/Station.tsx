@@ -1,5 +1,6 @@
 "use client";
 
+import { Flame } from "lucide-react";
 import { useStudy } from "@/lib/study-context";
 
 export default function Station() {
@@ -21,7 +22,9 @@ export default function Station() {
       >
         <span style={{ width: `${pct.toFixed(1)}%` }} />
       </div>
-      <span title="Días seguidos estudiando">🔥 {streak}</span>
+      <span className="streak" title="Días seguidos estudiando">
+        <Flame size={16} aria-hidden="true" /> {streak}
+      </span>
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CATEGORY_LABEL, type Term } from "@/data/vocabulary";
+import type { Term } from "@/data/vocabulary";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
+import { Check, RotateCw, Volume2, X } from "lucide-react";
 import { Empty, RoundEnd } from "../Feedback";
 
 export default function CardsView() {
-  const { buildQueue, answer } = useStudy();
+  const { buildQueue, answer, catLabel } = useStudy();
   const { speak } = useSpeech();
   const [queue, setQueue] = useState<Term[]>([]);
   const [index, setIndex] = useState(0);
@@ -55,7 +56,7 @@ export default function CardsView() {
         <span>
           Tarjeta {index + 1} de {queue.length}
         </span>
-        <span className="tag">{CATEGORY_LABEL[current.cat]}</span>
+        <span className="tag">{catLabel(current.cat)}</span>
       </div>
 
       <div className="card-stage">
@@ -67,7 +68,9 @@ export default function CardsView() {
           <div className="face front">
             <div className="emoji">{current.emoji}</div>
             <div className="word">{current.en}</div>
-            <div className="hint">Toca para ver el significado</div>
+            <div className="hint">
+              <RotateCw size={13} aria-hidden="true" /> Toca para ver el significado
+            </div>
           </div>
           <div className="face back">
             <div className="word-es">{current.es}</div>
@@ -81,13 +84,13 @@ export default function CardsView() {
 
       <div className="row">
         <button className="btn ghost" onClick={() => speak(current.en)} aria-label="Escuchar" title="Escuchar">
-          🔊
+          <Volume2 size={20} />
         </button>
         <button className="btn no" onClick={() => next(false)}>
-          Todavía no
+          <X size={18} aria-hidden="true" /> Todavía no
         </button>
         <button className="btn yes" onClick={() => next(true)}>
-          La sé
+          <Check size={18} aria-hidden="true" /> La sé
         </button>
       </div>
     </>

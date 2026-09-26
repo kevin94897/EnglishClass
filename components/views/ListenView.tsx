@@ -1,25 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { VOCAB, type Term } from "@/data/vocabulary";
+import type { Term } from "@/data/vocabulary";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
 import { shuffle } from "@/lib/utils";
-import { Empty, RoundEnd } from "../Feedback";
+import { Check, Volume2, X } from "lucide-react";
+import { AnswerFeedback, Empty, RoundEnd } from "../Feedback";
 
 const ROUND = 10;
 
 export default function ListenView() {
-  const { items, buildQueue, answer } = useStudy();
+  const { all, items, buildQueue, answer } = useStudy();
   const { speak, supported } = useSpeech();
   const [queue, setQueue] = useState<Term[]>([]);
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
+  // Tras elegir, primero se ven las opciones marcadas y luego la explicación.
+  const [reveal, setReveal] = useState(false);
 
   const start = useCallback(() => {
     setQueue(buildQueue(ROUND));
     setIndex(0);
     setPicked(null);
+    setReveal(false);
   }, [buildQueue]);
 
   useEffect(() => {
@@ -29,15 +33,22 @@ export default function ListenView() {
   const current = queue[index];
 
   useEffect(() => {
+    if (!picked || !current) return;
+    const correct = picked === current.id;
+    const t = setTimeout(() => setReveal(true), correct ? 1600 : 3200);
+    return () => clearTimeout(t);
+  }, [picked, current]);
+
+  useEffect(() => {
     if (current) speak(current.en);
   }, [current, speak]);
 
   const options = useMemo(() => {
     if (!current) return [];
-    const sameCat = VOCAB.filter((t) => t.id !== current.id && t.cat === current.cat);
-    const pool = sameCat.length >= 3 ? sameCat : VOCAB.filter((t) => t.id !== current.id);
+    const sameCat = all.filter((t) => t.id !== current.id && t.cat === current.cat);
+    const pool = sameCat.length >= 3 ? sameCat : all.filter((t) => t.id !== current.id);
     return shuffle([current, ...shuffle(pool).slice(0, 3)]);
-  }, [current]);
+  }, [current, all]);
 
   if (!supported) {
     return <Empty message="Este navegador no reproduce audio de voz. Prueba con Chrome o Safari." />;
@@ -57,6 +68,7 @@ export default function ListenView() {
   const choose = (id: string) => {
     if (picked) return;
     setPicked(id);
+    setReveal(false);
     answer(current.id, id === current.id);
   };
 
@@ -76,9 +88,17 @@ export default function ListenView() {
             style={{ maxWidth: 200, margin: "0 auto" }}
             onClick={() => speak(current.en)}
           >
-            🔊 Escuchar
+            <Volume2 size={18} aria-hidden="true" /> Escuchar
           </button>
-          <div className="hint mt">Puedes repetirlo las veces que quieras</div>
+          {picked ? (
+            <div className="heard mt">
+              <div className="emoji">{current.emoji}</div>
+              <div className="word">{current.en}</div>
+              <div className="hint">Esta fue la palabra que escuchaste</div>
+            </div>
+          ) : (
+            <div className="hint mt">Puedes repetirlo las veces que quieras</div>
+          )}
         </div>
 
         <div className="options">
@@ -93,27 +113,46 @@ export default function ListenView() {
             return (
               <button key={o.id} className={`opt${state}`} disabled={!!picked} onClick={() => choose(o.id)}>
                 <span>{o.es}</span>
+                {state === " right" && (
+                  <span className="en-tag">
+                    <Check size={13} aria-hidden="true" /> {o.en}
+                  </span>
+                )}
+                {state === " wrong" && (
+                  <span className="en-tag">
+                    <X size={13} aria-hidden="true" /> {o.en}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        {picked && (
-          <div className={`verdict${picked === current.id ? "" : " bad"}`}>
-            <b>{current.en}</b> — {current.es}
-            <div className="row mt">
-              <button
-                className="btn"
-                autoFocus
-                onClick={() => {
-                  setPicked(null);
-                  setIndex((i) => i + 1);
-                }}
-              >
-                Siguiente
-              </button>
-            </div>
+        {picked && !reveal && (
+          <div className={`pause${picked === current.id ? "" : " bad"}`} aria-live="polite">
+            {picked === current.id ? (
+              <>
+                <Check size={16} aria-hidden="true" /> ¡Correcto! Mira la respuesta…
+              </>
+            ) : (
+              <>
+                <X size={16} aria-hidden="true" /> Incorrecto. Mira cuál era la correcta…
+              </>
+            )}
           </div>
+        )}
+
+        {picked && reveal && (
+          <AnswerFeedback
+            term={current}
+            picked={options.find((o) => o.id === picked) ?? null}
+            onListen={() => speak(current.en)}
+            onNext={() => {
+              setPicked(null);
+              setReveal(false);
+              setIndex((i) => i + 1);
+            }}
+          />
         )}
       </div>
     </>
