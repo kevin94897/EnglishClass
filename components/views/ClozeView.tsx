@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Keyboard, ListChecks, Volume2, X } from "lucide-react";
+import { ArrowRight, Check, Keyboard, ListChecks, Volume2 } from "lucide-react";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
 import { blankOf, clozeOptions, makeCloze, sameWord, type Cloze } from "@/lib/cloze";
@@ -19,7 +19,6 @@ export default function ClozeView() {
   const [score, setScore] = useState(0);
   const [mode, setMode] = useState<Mode>("choose");
   const [picked, setPicked] = useState<string | null>(null);
-  const [reveal, setReveal] = useState(false);
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,25 +32,20 @@ export default function ClozeView() {
     setIndex(0);
     setScore(0);
     setPicked(null);
-    setReveal(false);
     setValue("");
   }, [buildQueue]);
 
+  // Solo al montar: responder cambia el progreso (y con él buildQueue) y no
+  // debe reiniciar la ronda. La vista se remonta por su key al cambiar de
+  // temario, modo o grupo.
   useEffect(() => {
     start();
-  }, [start]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const current = queue[index];
 
   const options = useMemo(() => (current ? clozeOptions(current, all) : []), [current, all]);
-
-  // Tras responder: primero se ve la corrección en el hueco y luego la explicación.
-  useEffect(() => {
-    if (!picked || !current) return;
-    const correct = sameWord(picked, current.answer);
-    const t = setTimeout(() => setReveal(true), correct ? 1600 : 3000);
-    return () => clearTimeout(t);
-  }, [picked, current]);
 
   useEffect(() => {
     if (mode === "write" && !picked) inputRef.current?.focus({ preventScroll: true });
@@ -77,7 +71,6 @@ export default function ClozeView() {
     if (picked !== null || !word.trim()) return;
     const ok = sameWord(word, current.answer);
     setPicked(word);
-    setReveal(false);
     if (ok) setScore((s) => s + 1);
     answer(current.term.id, ok);
     speak(current.term.exEn);
@@ -85,7 +78,6 @@ export default function ClozeView() {
 
   const next = () => {
     setPicked(null);
-    setReveal(false);
     setValue("");
     setIndex((i) => i + 1);
   };
@@ -181,26 +173,12 @@ export default function ClozeView() {
           </div>
         )}
 
-        {picked !== null && !reveal && (
-          <div className={`pause${correct ? "" : " bad"}`} aria-live="polite">
-            {correct ? (
-              <>
-                <Check size={16} aria-hidden="true" /> ¡Correcto! Mira la frase completa…
-              </>
-            ) : (
-              <>
-                <X size={16} aria-hidden="true" /> Incorrecto. La palabra era “{current.answer}”…
-              </>
-            )}
-          </div>
-        )}
-
-        {picked !== null && reveal && (
+        {picked !== null && (
           <AnswerFeedback term={current.term} picked={pickedTerm} onListen={() => speak(current.term.exEn)} onNext={next} />
         )}
       </div>
 
-      {picked !== null && reveal && mode === "write" && (
+      {picked !== null && mode === "write" && (
         <div className="hint mt" style={{ textAlign: "center" }}>
           Enter también pasa al siguiente <ArrowRight size={12} aria-hidden="true" />
         </div>

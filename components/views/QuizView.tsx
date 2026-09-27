@@ -5,7 +5,7 @@ import type { Term } from "@/data/vocabulary";
 import { useStudy } from "@/lib/study-context";
 import { useSpeech } from "@/lib/speech";
 import { shuffle } from "@/lib/utils";
-import { ArrowLeftRight, Check, X } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { AnswerFeedback, Empty, RoundEnd } from "../Feedback";
 
 const ROUND = 10;
@@ -18,8 +18,6 @@ export default function QuizView() {
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
-  // Tras elegir, primero se ven las opciones marcadas y luego la explicación.
-  const [reveal, setReveal] = useState(false);
   const [direction, setDirection] = useState<Direction>("en2es");
 
   const start = useCallback(() => {
@@ -27,21 +25,17 @@ export default function QuizView() {
     setIndex(0);
     setScore(0);
     setPicked(null);
-    setReveal(false);
   }, [buildQueue]);
 
+  // Solo al montar: responder cambia el progreso (y con él buildQueue) y no
+  // debe reiniciar la ronda. La vista se remonta por su key al cambiar de
+  // temario, modo o grupo.
   useEffect(() => {
     start();
-  }, [start]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const current = queue[index];
-
-  useEffect(() => {
-    if (!picked || !current) return;
-    const correct = picked === current.id;
-    const t = setTimeout(() => setReveal(true), correct ? 1400 : 2600);
-    return () => clearTimeout(t);
-  }, [picked, current]);
 
   // Los distractores salen de la misma categoría para que la pregunta exija saber, no adivinar.
   const options = useMemo(() => {
@@ -75,7 +69,6 @@ export default function QuizView() {
     if (picked) return;
     const correct = id === current.id;
     setPicked(id);
-    setReveal(false);
     if (correct) setScore((s) => s + 1);
     answer(current.id, correct);
     speak(current.en);
@@ -125,28 +118,13 @@ export default function QuizView() {
           })}
         </div>
 
-        {picked && !reveal && (
-          <div className={`pause${picked === current.id ? "" : " bad"}`} aria-live="polite">
-            {picked === current.id ? (
-              <>
-                <Check size={16} aria-hidden="true" /> ¡Correcto! Mira la respuesta…
-              </>
-            ) : (
-              <>
-                <X size={16} aria-hidden="true" /> Incorrecto. Mira cuál era la correcta…
-              </>
-            )}
-          </div>
-        )}
-
-        {picked && reveal && (
+        {picked && (
           <AnswerFeedback
             term={current}
             picked={options.find((o) => o.id === picked) ?? null}
             onListen={() => speak(current.en)}
             onNext={() => {
               setPicked(null);
-              setReveal(false);
               setIndex((i) => i + 1);
             }}
           />

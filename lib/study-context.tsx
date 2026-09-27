@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -131,12 +132,18 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const box = useCallback((id: string) => boxOf(state.progress, id), [state.progress]);
 
+  // buildQueue lee el progreso por ref para mantener la misma identidad entre
+  // respuestas: así las vistas no reinician su ronda cada vez que se contesta.
+  const progressRef = useRef(state.progress);
+  progressRef.current = state.progress;
   const buildQueue = useCallback(
     (limit?: number) => {
-      const ordered = shuffle(items).sort((a, b) => box(a.id) - box(b.id));
+      const ordered = shuffle(items).sort(
+        (a, b) => boxOf(progressRef.current, a.id) - boxOf(progressRef.current, b.id),
+      );
       return typeof limit === "number" ? ordered.slice(0, limit) : ordered;
     },
-    [items, box],
+    [items],
   );
 
   const answer = useCallback((id: string, correct: boolean) => {

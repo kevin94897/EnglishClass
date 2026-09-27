@@ -20,9 +20,13 @@ export default function CardsView() {
     setFlipped(false);
   }, [buildQueue]);
 
+  // Solo al montar: responder cambia el progreso (y con él buildQueue) y no
+  // debe reiniciar la ronda. La vista se remonta por su key al cambiar de
+  // temario, modo o grupo.
   useEffect(() => {
     start();
-  }, [start]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const current = queue[index];
 
