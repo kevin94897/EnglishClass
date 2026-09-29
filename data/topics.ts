@@ -1,5 +1,6 @@
 import { CATEGORY_LABEL, VOCAB, type Term } from "./vocabulary";
 import { WH_CATEGORIES, WH_TERMS } from "./wh-questions";
+import { EXAM_CATEGORIES, EXAM_TERMS } from "./exam-prep";
 
 /**
  * Un temario es un conjunto de términos con sus propias categorías y su
@@ -20,6 +21,15 @@ export type Topic = {
 };
 
 export const TOPICS: Topic[] = [
+  {
+    id: "exam-prep",
+    title: "Preparación para el examen",
+    subtitle: "Escribir una receta: ingredientes, cantidades, pasos, Do / Does y 30 verbos de cocina",
+    emoji: "📝",
+    level: "Examen escrito · Principiante",
+    categories: EXAM_CATEGORIES,
+    terms: EXAM_TERMS,
+  },
   {
     id: "kitchen",
     title: "Inglés de cocina",

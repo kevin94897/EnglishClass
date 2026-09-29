@@ -30,7 +30,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={font.variable}>
+    <html lang="es" className={font.variable} suppressHydrationWarning>
+      <head>
+        <script
+          // Aplica el tema guardado antes del primer pintado para evitar el parpadeo.
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var t=localStorage.getItem("chefen.theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}',
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

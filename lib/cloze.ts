@@ -24,7 +24,10 @@ export const blankOf = (t: Term) => (t.blank ?? t.en).replace(/^to /i, "").trim(
 export function makeCloze(term: Term): Cloze | null {
   const word = blankOf(term);
   if (!word) return null;
-  const m = new RegExp(`\\b${escape(word)}\\b`, "i").exec(term.exEn);
+  // Límites que también funcionan si la palabra termina en signo ("don't", "Yes, I do.")
+  const pattern = `(?<![\\p{L}\\p{N}])${escape(word)}(?![\\p{L}\\p{N}])`;
+  const m =
+    new RegExp(pattern, "u").exec(term.exEn) ?? new RegExp(pattern, "iu").exec(term.exEn);
   if (!m) return null;
   if (word.length / term.exEn.length > 0.5) return null;
   const before = term.exEn.slice(0, m.index);

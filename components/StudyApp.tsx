@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookA,
   Grid2x2,
@@ -25,6 +25,8 @@ import GlossaryView from "./views/GlossaryView";
 import Station from "./Station";
 import TopicPicker from "./TopicPicker";
 
+const THEME_KEY = "chefen.theme";
+
 const VIEW_ICON = {
   cards: Layers,
   quiz: ListChecks,
@@ -38,12 +40,30 @@ const VIEW_ICON = {
 export default function StudyApp() {
   const { topic, leaveTopic, view, setView, deck, setDeck, decks, ready } =
     useStudy();
-  const [theme, setTheme] = useState<"auto" | "light" | "dark">("auto");
+  // Tema efectivo (el elegido o, si no hay, el del sistema) para que el
+  // primer clic siempre cambie algo y el icono muestre el estado real.
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(THEME_KEY);
+    } catch {
+      /* almacenamiento bloqueado */
+    }
+    const system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    setTheme(saved === "dark" || saved === "light" ? saved : system);
+  }, []);
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
+    try {
+      window.localStorage.setItem(THEME_KEY, next);
+    } catch {
+      /* almacenamiento bloqueado */
+    }
   };
 
   // La clave fuerza el reinicio de la ronda al cambiar de mazo o de vista.
